@@ -48,8 +48,9 @@ async function initDraw(){
     alert(ret.msg);
 }
 async function resetAll(){
-    const res = await fetch(`${API_BASE}/api?action=reset`,{method:"POST"});
-    const ret = await res.json();
+   const res = await fetch(`${API_BASE}/api/route?action=list`);
+const res = await fetch(`${API_BASE}/api/route?action=draw&name=${encodeURIComponent(myName)}`);
+
     alert(ret.msg);
 }
 </script>
