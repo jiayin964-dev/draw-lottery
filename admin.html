@@ -39,7 +39,7 @@ const API_BASE = "";
 async function initDraw(){
     const players = document.getElementById("players").value.trim().split("\n").filter(x=>x.trim());
     const tasks = document.getElementById("tasks").value.trim().split("\n").filter(x=>x.trim());
-    const res = await fetch(`${API_BASE}/api/route?action=init`,{
+    const res = await fetch(`${API_BASE}/api/draw?action=init`,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({players,tasks})
@@ -48,10 +48,8 @@ async function initDraw(){
     alert(ret.msg);
 }
 async function resetAll(){
-    const res = await fetch(`${API_BASE}/api/route?action=reset`,{method:"POST"});
+    const res = await fetch(`${API_BASE}/api/draw?action=reset`,{method:"POST"});
     const ret = await res.json();
     alert(ret.msg);
 }
 </script>
-</body>
-</html>
