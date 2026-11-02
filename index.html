@@ -2,107 +2,58 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>秘密抽签</title>
+<title>抽签转盘</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif}
-body{background:#1a1a2e;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
-.box{background:#16213e;border-radius:16px;padding:32px;max-width:420px;width:100%;box-shadow:0 8px 30px #0004}
-h2{text-align:center;margin-bottom:24px;color:#e94560}
-.tip{color:#aaa;font-size:14px;text-align:center;margin-bottom:24px;line-height:1.6}
-select, button{width:100%;padding:14px;border-radius:10px;font-size:16px;margin:8px 0;border:none}
-select{background:#0f3460;color:#fff}
-button{background:#e94560;color:#fff;font-weight:bold;cursor:pointer}
-button:disabled{background:#555;cursor:not-allowed}
-#task-area{margin-top:20px;padding:20px;border-radius:12px;background:#0f3460;display:none;text-align:center}
-#task-text{font-size:18px;font-weight:500;line-height:1.7}
-.reset-btn{background:#333;margin-top:12px}
-.admin-link{margin-top:16px;color:#88aaff;font-size:14px;text-align:center;display:block}
+.wrap{max-width:420px;margin:40px auto;text-align:center}
+.wheel{width:300px;height:300px;border-radius:50%;background:#448aff;margin:0 auto 30px;transition: transform 4s cubic-bezier(0.2,0.8,0.2,1);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:bold}
+.btn{padding:12px 32px;font-size:18px;border:none;background:#222;color:#fff;border-radius:8px;cursor:pointer}
+.btn:disabled{background:#999;cursor:not-allowed}
+#result{margin-top:24px;font-size:20px;min-height:30px}
 </style>
 </head>
 <body>
-<div class="box">
-    <h2>秘密抽签</h2>
-    <div class="tip">选择你的名字抽签，仅你可见自己的任务</div>
-    <select id="name-select">
-        <option value="">——请选择你的名字——</option>
-    </select>
-    <button id="draw-btn" disabled>抽取我的任务</button>
-    <div id="task-area">
-        <div id="task-text"></div>
-        <button class="reset-btn" id="reset-btn">返回</button>
-    </div>
-    <a class="admin-link" id="adminBtn" href="admin.html">主持人后台</a>
+<div class="wrap">
+  <div class="wheel" id="wheel">转盘</div>
+  <button class="btn" id="drawBtn">点击转动抽签</button>
+  <div id="result"></div>
 </div>
 
 <script>
-const API_BASE = "";
-const nameSelect = document.getElementById("name-select");
-const drawBtn = document.getElementById("draw-btn");
-const taskArea = document.getElementById("task-area");
-const taskText = document.getElementById("task-text");
-const resetBtn = document.getElementById("reset-btn");
+const wheel = document.getElementById('wheel');
+const drawBtn = document.getElementById('drawBtn');
+const resultBox = document.getElementById('result');
 
-let drawn = false;
-let playerList = [];
-
-async function loadNames() {
-    const res = await fetch(`${API_BASE}/api/draw?action=list`);
-    const data = await res.json();
-    playerList = data.players || [];
-    nameSelect.innerHTML = `<option value="">——请选择你的名字——</option>`;
-    playerList.forEach(name=>{
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.innerText = name;
-        nameSelect.appendChild(opt);
-    })
-}
-
-nameSelect.onchange = ()=>{
-    drawBtn.disabled = !nameSelect.value
+// 本地标记：本机已经抽过
+if(localStorage.getItem('hasDraw')){
+  drawBtn.disabled = true;
+  resultBox.innerText = "你已经抽取过任务啦";
 }
 
 drawBtn.onclick = async ()=>{
-    if(drawn) return;
-    const myName = nameSelect.value;
-   const res = await fetch(`${API_BASE}/api/draw?action=draw&name=${encodeURIComponent(myName)}`);
-    const ret = await res.json();
-    if(ret.success){
-        taskText.innerText = `✅ 你的任务：\n${ret.task}`;
-        taskArea.style.display = "block";
-        drawBtn.disabled = true;
-        drawn = true;
+  drawBtn.disabled = true;
+  resultBox.innerText = "转动中...";
+  // 转盘随机旋转圈数
+  const randomDeg = 1800 + Math.random() * 1800;
+  wheel.style.transform = `rotate(${randomDeg}deg)`;
+
+  // 等待转盘动画跑完，再请求后端拿任务
+  await new Promise(resolve=>setTimeout(resolve,4000));
+
+  try{
+    const res = await fetch(`api/draw?action=draw`);
+    const data = await res.json();
+    if(data.success){
+      localStorage.setItem('hasDraw','1');
+      resultBox.innerText = `🎉你的任务：${data.task}`;
     }else{
-        alert(ret.msg || "抽签失败");
+      resultBox.innerText = data.msg;
+      drawBtn.disabled = false;
     }
-}
-
-resetBtn.onclick = ()=>{
-    taskArea.style.display = "none";
-    nameSelect.value = "";
-    drawBtn.disabled = true;
-    drawn = false;
-}
-
-loadNames();
-</script>
-</body>
-</html>
-<input id="username" placeholder="输入你的名字">
-<button onclick="doDraw()">开始抽签</button>
-<div id="result"></div>
-
-<script>
-async function doDraw(){
-  const name = document.getElementById("username").value.trim();
-  if(!name) return alert("请输入名字");
-  const res = await fetch(`api/draw?action=draw&name=${encodeURIComponent(name)}`)
-  const data = await res.json();
-  if(data.success){
-    document.getElementById("result").innerText = `🎉你的任务：${data.task}`;
-  }else{
-    alert(data.msg);
+  }catch(e){
+    resultBox.innerText = "网络请求失败，请重试";
+    drawBtn.disabled = false;
   }
 }
 </script>
+</body>
+</html>
