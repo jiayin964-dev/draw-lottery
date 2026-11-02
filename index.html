@@ -48,7 +48,7 @@ let playerList = [];
 
 // 获取名单
 async function loadNames() {
-    const res = await fetch(`${API_BASE}/api/route?action=list`);
+    const res = await fetch(`${API_BASE}/app/api/route?action=list`);
     const data = await res.json();
     playerList = data.players || [];
     nameSelect.innerHTML = `<option value="">——请选择你的名字——</option>`;
@@ -67,7 +67,7 @@ nameSelect.onchange = ()=>{
 drawBtn.onclick = async ()=>{
     if(drawn) return;
     const myName = nameSelect.value;
-    const res = await fetch(`${API_BASE}/api/route?action=draw&name=${encodeURIComponent(myName)}`);
+    const res = await fetch(`${API_BASE}/app/api/route?action=draw&name=${encodeURIComponent(myName)}`);
     const ret = await res.json();
     if(ret.success){
         taskText.innerText = `✅ 你的任务：\n${ret.task}`;
