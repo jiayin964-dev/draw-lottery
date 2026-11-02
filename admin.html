@@ -7,7 +7,8 @@
 .wrap{max-width:500px;margin:40px auto}
 textarea{width:100%;height:240px;padding:10px;box-sizing:border-box}
 button{margin:10px 10px 0 0;padding:10px 20px}
-#msg{margin-top:16px}
+#msg{margin-top:16px;color:#333}
+.status-box{margin-top:24px;padding:16px;border:1px solid #ddd;border-radius:8px}
 </style>
 </head>
 <body>
@@ -21,10 +22,18 @@ button{margin:10px 10px 0 0;padding:10px 20px}
   <button onclick="initPool()">初始化任务池</button>
   <button onclick="resetPool()">重置清空</button>
   <div id="msg"></div>
+
+  <div class="status-box">
+    <h4>抽签进度查询</h4>
+    <input type="password" id="pwdInput" placeholder="输入管理员密码">
+    <button onclick="checkStatus()">查询进度</button>
+    <div id="statusResult" style="margin-top:12px"></div>
+  </div>
 </div>
 
 <script>
 const msgBox = document.getElementById('msg');
+const statusResult = document.getElementById('statusResult');
 
 async function initPool(){
   const text = document.getElementById('taskText').value.trim();
@@ -47,6 +56,17 @@ async function resetPool(){
   })
   const data = await res.json();
   msgBox.innerText = data.msg;
+}
+
+async function checkStatus(){
+  const pwd = document.getElementById('pwdInput').value.trim();
+  const res = await fetch(`api/draw?action=getStatus&pwd=${encodeURIComponent(pwd)}`)
+  const data = await res.json();
+  if(data.success){
+    statusResult.innerText = `✅ 当前进度：已抽取 ${data.drawnCount} / 总共 ${data.total} 个任务`
+  }else{
+    statusResult.innerText = data.msg;
+  }
 }
 </script>
 </body>
