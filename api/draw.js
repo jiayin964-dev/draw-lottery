@@ -2,6 +2,8 @@ let pool = {
   taskList: [],
   drawnIndex: new Set()
 };
+// 自己在这里改管理员密码
+const ADMIN_PWD = "123456";
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,16 +12,14 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    const { action } = req.query;
+    const { action, pwd } = req.query;
 
-    // 管理员：初始化任务池
     if (req.method === "POST" && action === "init") {
       const body = req.body;
       const tasks = body.tasks;
       if (!Array.isArray(tasks) || tasks.length === 0) {
         return res.json({ success: false, msg: "任务列表不能为空" });
       }
-      // 洗牌打乱任务
       const shuffle = arr => {
         const a = [...arr];
         for (let i = a.length - 1; i > 0; i--) {
@@ -35,13 +35,12 @@ export default async function handler(req, res) {
       return res.json({ success: true, msg: "✅任务池初始化完成" });
     }
 
-    // 管理员：重置清空
     if (req.method === "POST" && action === "reset") {
       pool = { taskList: [], drawnIndex: new Set() };
       return res.json({ success: true, msg: "✅任务池已清空重置" });
     }
 
-    // 用户抽签接口（GET，转盘点击调用这个）
+    // 用户抽签
     if (req.method === "GET" && action === "draw") {
       const total = pool.taskList.length;
       if (total === 0) {
@@ -50,7 +49,6 @@ export default async function handler(req, res) {
       if (pool.drawnIndex.size >= total) {
         return res.json({ success: false, msg: "所有任务已经被抽完啦" });
       }
-      // 找一个还没被抽取的索引
       let pickIndex;
       do {
         pickIndex = Math.floor(Math.random() * total);
@@ -58,14 +56,22 @@ export default async function handler(req, res) {
 
       pool.drawnIndex.add(pickIndex);
       const myTask = pool.taskList[pickIndex];
-      // 只返回当前抽到的任务！不返回任何池子信息
+      return res.json({ success: true, task: myTask });
+    }
+
+    // 管理员查询进度接口（需要密码）
+    if (req.method === "GET" && action === "getStatus") {
+      if (pwd !== ADMIN_PWD) {
+        return res.json({ success: false, msg: "密码错误，无法查看" });
+      }
       return res.json({
         success: true,
-        task: myTask
+        total: pool.taskList.length,
+        drawnCount: pool.drawnIndex.size
       });
     }
 
-    return res.json({ success: false, msg: "非法请求" });
+    return res.json({ success: false, msg: "非法操作" });
   } catch (err) {
     return res.json({ success: false, msg: "后端异常：" + err.message });
   }
