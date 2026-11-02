@@ -3,90 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>秘密抽签</title>
+<title>抽签后台</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif}
-body{background:#1a1a2e;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
-.box{background:#16213e;border-radius:16px;padding:32px;max-width:420px;width:100%;box-shadow:0 8px 30px #0004}
-h2{text-align:center;margin-bottom:24px;color:#e94560}
-.tip{color:#aaa;font-size:14px;text-align:center;margin-bottom:24px;line-height:1.6}
-select, button{width:100%;padding:14px;border-radius:10px;font-size:16px;margin:8px 0;border:none}
-select{background:#0f3460;color:#fff}
-button{background:#e94560;color:#fff;font-weight:bold;cursor:pointer}
-button:disabled{background:#555;cursor:not-allowed}
-#task-area{margin-top:20px;padding:20px;border-radius:12px;background:#0f3460;display:none;text-align:center}
-#task-text{font-size:18px;font-weight:500;line-height:1.7}
-.reset-btn{background:#333;margin-top:12px}
-.admin-link{margin-top:16px;color:#88aaff;font-size:14px;text-align:center;display:block}
+body{background:#1a1a2e;color:#fff;min-height:100vh;padding:30px 20px}
+.box{background:#16213e;border-radius:16px;padding:24px;max-width:500px;margin:0 auto}
+h2{color:#e94560;text-align:center;margin-bottom:20px}
+textarea,input{width:100%;padding:12px;border-radius:8px;margin:8px 0;border:none;background:#0f3460;color:#fff}
+button{width:100%;padding:14px;border-radius:10px;border:none;background:#e94560;color:#fff;font-weight:bold;margin:6px 0;cursor:pointer}
+.gray{background:#444}
+.info{color:#aaa;font-size:14px;line-height:1.6;margin:10px 0}
+.back{display:block;text-align:center;color:#88aaff;margin-top:16px}
 </style>
 </head>
 <body>
 <div class="box">
-    <h2>秘密抽签</h2>
-    <div class="tip">选择你的名字抽签，仅你可见自己的任务</div>
-    <select id="name-select">
-        <option value="">——请选择你的名字——</option>
-    </select>
-    <button id="draw-btn" disabled>抽取我的任务</button>
-    <div id="task-area">
-        <div id="task-text"></div>
-        <button class="reset-btn" id="reset-btn">返回</button>
-    </div>
-    <a class="admin-link" id="adminBtn" href="admin.html">主持人后台</a>
+    <h2>主持人后台</h2>
+    <div class="info">名单、任务一行一个，数量必须相等</div>
+    <label>人员名单：</label>
+    <textarea id="players" rows="6" placeholder="A
+B
+C
+D"></textarea>
+    <label>任务列表：</label>
+    <textarea id="tasks" rows="6" placeholder="任务1
+任务2
+任务3
+任务4"></textarea>
+    <button onclick="initDraw()">开始随机分配</button>
+    <button class="gray" onclick="resetAll()">清空全部抽签记录</button>
+    <a class="back" href="index.html">返回抽签页</a>
 </div>
-
 <script>
 const API_BASE = "";
-const nameSelect = document.getElementById("name-select");
-const drawBtn = document.getElementById("draw-btn");
-const taskArea = document.getElementById("task-area");
-const taskText = document.getElementById("task-text");
-const resetBtn = document.getElementById("reset-btn");
-
-let drawn = false;
-let playerList = [];
-
-// 获取名单
-async function loadNames() {
-    const res = await fetch(`${API_BASE}/app/api/route?action=list`);
-    const data = await res.json();
-    playerList = data.players || [];
-    nameSelect.innerHTML = `<option value="">——请选择你的名字——</option>`;
-    playerList.forEach(name=>{
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.innerText = name;
-        nameSelect.appendChild(opt);
+async function initDraw(){
+    const players = document.getElementById("players").value.trim().split("\n").filter(x=>x.trim());
+    const tasks = document.getElementById("tasks").value.trim().split("\n").filter(x=>x.trim());
+    const res = await fetch(`${API_BASE}/api?action=init`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({players,tasks})
     })
-}
-
-nameSelect.onchange = ()=>{
-    drawBtn.disabled = !nameSelect.value
-}
-
-drawBtn.onclick = async ()=>{
-    if(drawn) return;
-    const myName = nameSelect.value;
-    const res = await fetch(`${API_BASE}/app/api/route?action=draw&name=${encodeURIComponent(myName)}`);
     const ret = await res.json();
-    if(ret.success){
-        taskText.innerText = `✅ 你的任务：\n${ret.task}`;
-        taskArea.style.display = "block";
-        drawBtn.disabled = true;
-        drawn = true;
-    }else{
-        alert(ret.msg || "抽签失败");
-    }
+    alert(ret.msg);
 }
-
-resetBtn.onclick = ()=>{
-    taskArea.style.display = "none";
-    nameSelect.value = "";
-    drawBtn.disabled = true;
-    drawn = false;
+async function resetAll(){
+    const res = await fetch(`${API_BASE}/api?action=reset`,{method:"POST"});
+    const ret = await res.json();
+    alert(ret.msg);
 }
-
-loadNames();
 </script>
 </body>
 </html>
